@@ -1,48 +1,106 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d0c"><meta name="description" content="我的 Go2 控制方法：策略与关节 PD 执行链、左右等变、航向反馈、同步接触诊断与起停验收，附论文引用。"><title>四足运动控制方法论 · kaizack</title><link rel="icon" href="/assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d0c"><meta name="description" content="以四足机器人控制方法论与学习建议为主线，理解 MPC/WBC、强化学习、历史适应、感知与混合控制，附学习顺序及论文引用。"><title>四足运动控制方法论 · kaizack</title><link rel="icon" href="/assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head>
 <body><a class="skip-link" href="#main">跳至正文</a><header class="site-header"><div class="wrap nav-shell"><a class="brand" href="/"><span class="brand-mark">K</span><span>kaizack<span class="brand-dot">.</span></span></a><button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">菜单</button><nav class="nav-links" id="primary-nav" aria-label="主导航"><a href="/#projects">项目</a><a href="/#articles">文章</a><a href="/#timeline">经历</a><a href="/#stack">技术栈</a></nav></div></header>
-<main id="main"><header class="page-hero"><div class="wrap"><div class="breadcrumbs"><a href="/">首页</a> / 文章 / 四足控制</div><p class="eyebrow">QUADRUPED · CONTROL</p><h1>四足运动控制方法论</h1><p class="lede">沿命令、观测、策略、关节目标和实际响应分析问题，用同步诊断与固定回归验证每次控制改动。</p><div class="page-meta"><time datetime="2026-10-23">更新于 2026-10-23</time><span><a href="/projects/go2/">项目详情 →</a></span></div></div></header>
+<main id="main"><header class="page-hero"><div class="wrap"><div class="breadcrumbs"><a href="/">首页</a> / 文章 / 四足控制</div><p class="eyebrow">QUADRUPED · CONTROL</p><h1>四足运动控制方法论</h1><p class="lede">从 MPC/WBC、强化学习到混合控制，按任务理解方法职责、工程前提与学习顺序。</p><div class="page-meta"><time datetime="2026-10-23">更新于 2026-10-23</time><span><a href="/projects/go2/">项目详情 →</a></span></div></div></header>
 <div class="detail-content"><div class="wrap detail-grid"><article class="prose">
-  <p>在 Go2 越障项目中，我把控制问题沿“命令 → 观测 → 策略动作 → 关节目标 → 执行响应 → 接触与运动结果”逐层展开。看到前腿动作不协调、蹭地或停车漂移时，先定位异常发生在哪一层，再选择干预。这篇文章整理我实际使用和验证过的控制分析方法。</p>
+  <p>四足控制的学习主线，是弄清每一层根据什么信息、决定什么量、受到什么限制。本文以《四足机器人控制方法论与学习建议》为主要参考，围绕模型控制、强化学习和混合架构，整理我理解与选择方法时使用的框架。</p>
+  <p>文中的 MPC、WBC、适应与感知系统属于论文方法和后续学习参考；我的 Go2 训练实践另见<a href="/blog/go2-evaluation/">四足强化学习训练技巧</a>。阅读论文形成的方法认识，与已经实现并验证的项目能力分别说明。</p>
 
-  <h2 id="execution">1. 先看清策略到关节的执行链</h2>
-  <p>项目使用 PPO 学习动作，算法基础见 Schulman 等人的论文 <a href="#ref-ppo" aria-label="参考文献 1">[1]</a>。阶段参考模型的动作配置为关节位置控制：12 维策略输出经过 0.25 缩放并叠加默认关节姿态，交给仿真执行器的 PD 环节，再受电机速度与力矩边界约束。配置中的仿真步长为 0.005 秒、动作降采样为 4，对应每 0.02 秒更新一次策略目标。</p>
-  <p><strong>策略原始动作、处理后的关节目标、实际关节角度与执行力矩需要分别记录。</strong>关节目标超出可达范围时，即使实际关节没有越限，也会影响 PD 误差和输出。因而，诊断不能只看动作曲线或视频中的最终姿态。</p>
-  <p>2026-10-13 我做过只改变播放阶段关节目标硬限幅的对照。一个原失败回合恢复跑满，但 32 回合箱体整体从 31/32 降至 30/32，速度误差从 0.141198 增至 0.175167 m/s；10 cm 缺口零非足接触完成从 32/32 降至 25/32。因此没有采用该修补。此结果说明该轮直接改变执行映射未通过筛查，不能据此否定所有限幅设计。</p>
-
-  <h2 id="symmetry">2. 左右对称是变换关系，不是同时输出相同动作</h2>
-  <p>对称约束要求镜像观测产生相应的镜像动作。Mittal 等人研究数据增强与镜像损失 <a href="#ref-mittal" aria-label="参考文献 2">[2]</a>；Su 等人比较网络等变结构与增强方法在足式控制中的作用 <a href="#ref-su" aria-label="参考文献 3">[3]</a>。这些工作帮助我区分对称先验的不同实现方式。</p>
-  <p>本地实现读取明确的观测和动作镜像映射，分别计算原观测、镜像观测下的输出，把后者映回后进行均值投影；高斯方差也同步处理。采样、log probability、KL 与确定性推理使用同一投影分布。该实现的具体公式和接口以本地源码为准，不宣称复现了上述论文的全部结构或实验。</p>
-  <p>检查步态时，我按每条腿自己的摆动周期对齐足端高度、接触状态和关节响应。对角小跑的不同腿并非都在同一相位，不能用同一时刻的左右高度相等作为正常动作的唯一标准。镜像误差下降后仍要复核接触和路线表现。</p>
-
-  <h2 id="heading">3. 将航向反馈纳入命令闭环</h2>
-  <p>持续给定前进速度时，我还检查机器人是否偏航离开路线。在航向保持实验中，每回合重置时锁定参考航向，转向速度命令由航向误差闭环产生，范围为 ±0.3 rad/s；前进速度保持 0.8 m/s。这个命令模式需要随模型与评估配置一同保存。</p>
-  <p>2026-10-21 的处理组从 <code>model_2908.pt</code> 续训 10 次更新得到 <code>model_2916.pt</code>，在种子 42、43、44、每种子 32 回合中，两项核心路线均为 96/96。由于比较涉及续训和命令协议，不能把全部差值单独归因于航向控制，也不能把固定零转向命令下的数据直接合并进同一表格。</p>
-
-  <h2 id="contact">4. 接触诊断对齐时间、部位与通过阶段</h2>
-  <p>遇到头部或小腿接触，我同步查看实际策略观测、上一周期持有的关节目标、关节反馈、足端位置、机身姿态和接触历史。当前时刻新算出的动作尚未执行，不能用它直接解释已经发生的接触。路线也拆为接近障碍、前腿跨越、后腿通过和恢复，逐段寻找最早出现的异常。</p>
-  <p>记录接触时，同时给出有标记的回合数和历史窗口采样占比。当前 1 N 标记是记录规则；窗口重叠，无法据此给出独立撞击次数或精确持续时间。控制改动是否有效，要同时看失败回合与整个批次，单个回合的恢复视频不足以证明整体改善。</p>
-
-  <h2 id="stop">5. 把行走、停稳、站立和重新起步分别验收</h2>
-  <p>我将停车目标拆成“收到零命令后 2 秒内停稳、随后持续站立 30 秒、能够重新起步”。从 <code>model_2916.pt</code> 新增 5 次更新得到的起停分支 <code>model_2920.pt</code>，测试先行走 3 秒，再输入零命令 35 秒，之后重新起步。</p>
-  <table class="data-table"><caption>起停分支的零命令测试记录</caption><thead><tr><th scope="col">行走命令</th><th scope="col">零命令 35 秒位移</th><th scope="col">末端平面速度</th></tr></thead><tbody>
-    <tr><td>0.3 m/s</td><td>2.945 m</td><td>0.103 m/s</td></tr>
-    <tr><td>0.5 m/s</td><td>3.047 m</td><td>0.075 m/s</td></tr>
-    <tr><td>0.8 m/s</td><td>3.185 m</td><td>0.088 m/s</td></tr>
+  <h2 id="routes">1. 先按任务理解三条控制路线</h2>
+  <table class="data-table"><caption>方法的职责与主要前提</caption><thead><tr><th scope="col">路线</th><th scope="col">主要决策</th><th scope="col">需要关注</th></tr></thead><tbody>
+    <tr><td>MPC 与 WBC</td><td>预测运动与脚力，协调当前全身执行</td><td>模型、状态估计、接触约束与在线求解</td></tr>
+    <tr><td>强化学习</td><td>根据观测生成关节目标或力矩等动作</td><td>训练覆盖、观测接口与执行器一致性</td></tr>
+    <tr><td>模型规划与学习控制</td><td>规划器给参考，学习控制器跟踪或修正</td><td>参考的含义、更新周期与模块间误差</td></tr>
   </tbody></table>
-  <p>三档均未在 2 秒内停稳，因而没有进入合格的 30 秒持续站立判定；随后重新起步成功。该分支还未保住全部越障筛查指标，所以停止继续训练。零命令漂移的唯一根因尚未确定，下一步需要核对命令输入、观测、动作历史与根速度的同步变化。</p>
+  <p>方法强弱需要放回任务判断：精确落脚关注几何与接触，复杂地形关注感知和恢复，高速运动关注执行器能力。不同机器人和评测条件之间，不能仅凭速度纪录或一段演示进行统一排名。</p>
 
-  <h2 id="tradeoff">6. 控制改动通过整体回归后才保留</h2>
-  <p>每次改动先明确作用位置：命令生成、策略输入、动作映射或奖励。保持其余条件不变，短程测试后一起检查路线、速度跟踪、前进进度、姿态、接触与旧能力。局部异常消失，但整体任务退化时，保留证据并回到对照。</p>
-  <div class="callout" id="next"><strong>我的控制方法：</strong>先沿执行链找到有证据支持的异常，再做一次可回退的干预，用同步轨迹解释过程，用固定批次检查代价。这里总结的是 Go2 仿真经验；实体四足的 VMC 与腿部雅可比工作另见<a href="/projects/quadruped/">竞赛项目页</a>。</div>
+  <h2 id="model">2. 模型路线：MPC 看未来，WBC 协调当前</h2>
+  <p>典型链路是：IMU 与编码器 → 状态估计 → 步态与参考规划 → MPC → WBC → 关节反馈与驱动器。步态安排给出支撑与摆动时序；MPC 在预测区间内选择运动和接触力，只执行第一步，再根据新状态重算。Kim 等人的 Mini Cheetah 工作展示了 MPC 与全身冲量控制 WBIC 的分层组合。<a href="#ref-wbic" aria-label="参考文献 1">[1]</a></p>
+  <p>简化模型可以把身体近似为单刚体，利用脚力控制质心和机身转动。在接触安排固定、动力学对优化变量为线性、目标为凸二次型且约束为线性时，可以得到凸 QP。预测区间需要兼顾制动与换支撑需求、求解开销和模型偏差。</p>
+  <p>常见逆动力学 WBC 则在当前时刻协调全身加速度、接触力与关节力矩，满足浮动基座动力学：</p>
+  <p><code>M(q) q̈ + h(q,q̇) = Sᵀ τ + Jcᵀ λ</code></p>
+  <p>这里 M 是质量矩阵，h 包含重力与速度相关项，τ 是关节力矩，λ 是接触力，Jc 是接触雅可比，S 表示电机只直接驱动关节。理想固定接触还要求 <code>Jc q̈ + J̇c q̇ = 0</code>；摩擦、单边接触和力矩上限构成其他限制。具体 WBC 的任务层级与优化变量随实现而变，WBIC 不能代指所有 WBC。</p>
+  <p><strong>使用触发点：</strong>关节单独跟踪正常，但机身姿态、支撑脚和力矩限制互相冲突时，学习 WBC 的协调作用；加减速或换支撑来不及时，检查 MPC 和步态参考是否提前考虑了未来支撑。</p>
 
-  <h2 id="references">引用论文与使用范围</h2>
+  <h2 id="execution">3. RL 路线：先查动作接口，再谈策略能力</h2>
+  <p>一类常见四足 RL 架构读取关节状态、机身运动、速度命令和历史动作，输出默认姿态附近的关节位置目标，由 PD 环节产生力矩。Rudin 等人的并行训练工作结合 GPU 采样与地形课程，提供了理解这类训练流程的入口。<a href="#ref-rl" aria-label="参考文献 2">[2]</a></p>
+  <p><code>qdes = qnominal + scale · action</code></p>
+  <p><code>τcmd = Kp (qdes − q) + Kd (vdes − q̇) + τff</code></p>
+  <p>这是用于理解接口的表达，具体系统可能没有前馈项，也可能输出速度、残差或直接力矩。仅凭输出维度等于关节数，无法判断命令模式。PPO 是训练算法，部署时运行的是策略推理；使用 RL 仍需要正确的坐标、传感器与下层反馈。</p>
+  <ul>
+    <li><strong>观测：</strong>哪些量来自传感器、估计器或仿真真值？哪些只供 critic 训练，哪些会进入部署 actor？</li>
+    <li><strong>动作：</strong>关节顺序、零位、方向、缩放、限幅和 PD 参数怎样作用于实际关节目标？</li>
+    <li><strong>时间：</strong>物理步长、策略周期和动作保持时间分别是多少？改变降采样会改变闭环。</li>
+    <li><strong>任务：</strong>奖励、终止、重置、课程与随机化覆盖哪些条件？</li>
+  </ul>
+  <p><strong>使用触发点：</strong>需要在多种地形上连续跟踪速度并调整步态时，考虑 RL；出现零位错误、反馈延迟或驱动饱和时，先排查执行链。</p>
+
+  <h2 id="estimation">4. 状态估计与历史适应解决不同问题</h2>
+  <p>状态估计回答“身体现在如何运动”。IMU 提供角速度和比力，编码器与接触运动学约束身体运动。Bloesch 等人的工作把腿部运动学与 IMU 融合，并强调可观测性与滤波一致性；支撑脚打滑后，固定接触假设需要重新检查。<a href="#ref-estimation" aria-label="参考文献 3">[3]</a></p>
+  <p>历史适应回答“近期响应反映了什么外部或动力学条件”。RMA 使用基础策略与适应模块，根据近期状态和动作历史预测潜在环境特征，再调整动作。这里的在线适应主要是推断过程，并不意味着机器人行走时不断重新运行 PPO。<a href="#ref-rma" aria-label="参考文献 4">[4]</a></p>
+  <p>DreamWaQ 将本体感知历史用于速度及潜在环境表示的学习，为有限传感条件下的运动控制提供另一种思路。隐含地形表示来自运动响应，不能直接解释为看到了前方尚未接触的沟或障碍。<a href="#ref-dreamwaq" aria-label="参考文献 5">[5]</a></p>
+  <p><strong>使用触发点：</strong>负载、摩擦或执行器状态变化后退化时，研究历史与适应；速度估计失真时，先核对接触、坐标与时间对齐，再比较估计方法。</p>
+
+  <h2 id="perception">5. 感知控制：让地形信息参与动作决策</h2>
+  <p>本体感知反映已经发生的接触；相机、激光雷达和地图可以提供接触前的地形信息。Grandia 等人的感知非线性 MPC 将地形处理与运动优化结合，在模型规划中明确考虑可落脚区域和碰撞边界。地图中的可踩区域仍需面对状态误差与实际接触条件。<a href="#ref-nmpc" aria-label="参考文献 6">[6]</a></p>
+  <p>Miki 等人的工作融合外部与本体感知，并处理外部感知不可靠的情况。值得学习的是如何在感知退化时维持控制，以及训练输入与部署输入怎样对应。<a href="#ref-perceptive" aria-label="参考文献 7">[7]</a></p>
+  <p>地图只提供给 critic，与部署 actor 实际读取地图是两种配置。教师看到完整地形，也不能直接推出学生部署时拥有同样的信息。分析感知控制时，需要沿数据链确认：传感器看到了什么、地图何时更新、坐标如何对齐、哪一层使用了它。</p>
+  <p><strong>使用触发点：</strong>踏石、连续间隙、禁止落脚区域等需要提前选择落脚位置的任务，适合比较感知规划与感知 RL。</p>
+
+  <h2 id="hybrid">6. 混合控制：明确学习模块补了什么缺口</h2>
+  <p>DTC 用模型优化器提供运动与落脚参考，再训练神经网络跟踪器执行。规划器保留几何目标，学习跟踪器处理模型与接触偏差；这一组合需要清晰的参考接口，也仍依赖规划与感知。<a href="#ref-dtc" aria-label="参考文献 8">[8]</a></p>
+  <p>另一类组合在基线控制器上增加学习残差。读系统时要问：残差加在落脚、接触力、关节目标还是力矩上？幅度与更新周期是什么？如何处理饱和与模块失效？残差足够大时，原控制器的稳定性判断不能直接沿用。</p>
+  <p>运动先验与技能层级则把动作风格、底层技能和任务选择分开。它们适合复用已有动作，但仍需要验证数据覆盖和切换行为；自然的动作观感不能代替接触或能耗检查。</p>
+  <p><strong>使用触发点：</strong>计划准确、实际接触偏差下却容易失稳时，考虑学习跟踪或残差；模块组合的价值要通过相同测试条件下的基线对照来判断。</p>
+
+  <h2 id="engineering">7. 三条路线共同依赖的工程基础</h2>
+  <ul>
+    <li><strong>状态与接触：</strong>统一世界、机身和足端坐标，保留时间戳，检查支撑脚是否打滑。</li>
+    <li><strong>指令与执行器：</strong>核对关节顺序、零位、正方向、单位、命令模式、增益、力矩速度边界与反馈延迟。Hwangbo 等人的工作是理解执行器建模与仿真迁移的代表性入口。<a href="#ref-actuator" aria-label="参考文献 9">[9]</a></li>
+    <li><strong>多频率衔接：</strong>记录状态采样、规划求解、策略推理和驱动执行的周期，检查参考年龄、端到端时延与抖动。</li>
+    <li><strong>约束与停止：</strong>模型约束依赖模型和估计，奖励惩罚不能直接提供硬保证；驱动限制、指令超时和停止逻辑需要明确实现。</li>
+    <li><strong>迁移与验证：</strong>围绕实测的不确定性设计随机化；仿真、Sim2Sim 与真机分别提供不同层级的证据。</li>
+  </ul>
+  <p id="contact">沿一次失败倒查时，我采用的分析顺序是：实际执行是否跟上命令 → 状态与接触是否可信 → 参考是否可实现 → 规划或策略是否选错动作。每一步都需要同步轨迹或接口记录支持。</p>
+
+  <h2 id="selection">8. 从具体问题选择下一步方法</h2>
+  <table class="data-table"><caption>工程选择入口，需结合硬件与任务验证</caption><thead><tr><th scope="col">任务或症状</th><th scope="col">优先研究</th><th scope="col">先检查</th></tr></thead><tbody>
+    <tr><td>固定站立、调高或倾斜身体</td><td>接触力 QP / WBC</td><td>运动学、接触与力矩接口</td></tr>
+    <tr><td>加减速、换支撑失稳</td><td>MPC / 步态参考</td><td>模型、预测区间与接触安排</td></tr>
+    <tr><td>常见地形速度跟踪</td><td>本体感知 RL</td><td>训练覆盖与执行器一致性</td></tr>
+    <tr><td>负载、摩擦变化后退化</td><td>历史估计 / 适应</td><td>时间对齐与估计误差</td></tr>
+    <tr><td>踏石、间隙、禁止落脚区</td><td>感知规划 / 感知 RL</td><td>地图精度与感知延迟</td></tr>
+    <tr><td>计划准确、接触偏差下失稳</td><td>规划 + 学习跟踪</td><td>参考接口与训练范围</td></tr>
+    <tr><td>仿真稳定、真机振荡</td><td>执行链与模型排查</td><td>零位、增益、饱和与时序</td></tr>
+  </tbody></table>
+  <p id="tradeoff">QP 是优化问题类别，OSQP 是求解器，MPC 是滚动预测控制方式，WBC 组织当前全身任务，RL 从数据中学习策略。读清这些层级，才能解释一个系统实际组合了哪些方法。</p>
+
+  <h2 id="learning">9. 结合我的控制背景安排学习顺序</h2>
+  <p>结合已有的嵌入式、多电机通信、运动学与 Go2 训练实践，我按以下顺序补齐知识。下面是学习安排，每一步都对应一个可检查的成果。</p>
   <ol>
-    <li id="ref-ppo">Schulman, J., Wolski, F., Dhariwal, P., Radford, A. &amp; Klimov, O. (2017). <a href="https://arxiv.org/abs/1707.06347" target="_blank" rel="noreferrer">Proximal Policy Optimization Algorithms</a>. arXiv:1707.06347。对应策略优化背景；本文关节与执行器参数来自本地配置。</li>
-    <li id="ref-mittal">Mittal, M., Rudin, N., Klemm, V., Allshire, A. &amp; Hutter, M. (2024). <a href="https://arxiv.org/abs/2403.04359" target="_blank" rel="noreferrer">Symmetry Considerations for Learning Task Symmetric Robot Policies</a>. ICRA 2024。对应对称增强与镜像损失。</li>
-    <li id="ref-su">Su, Z. 等 (2024). <a href="https://iit-dlslab.github.io/papers/su24iros.pdf" target="_blank" rel="noreferrer">Leveraging Symmetry in RL-based Legged Locomotion Control</a>. IROS 2024。对应足式策略中的等变结构与数据增强比较。</li>
+    <li><strong>读透策略执行链：</strong>把一帧观测、归一化、actor、动作缩放、PD 与饱和写成接口表，解释参数变化如何影响闭环。</li>
+    <li><strong>补足式状态估计：</strong>在仿真中对比真值与估计，观察接触误判、打滑和时间错位带来的变化。</li>
+    <li><strong>从脚力分配理解固定接触 WBC：</strong>找出动力学、接触等式、摩擦和力矩限制，读懂一次任务与 QP 的组装。</li>
+    <li><strong>理解 MPC 增加的预测：</strong>比较只考虑当前与考虑未来多步的区别，明确预测状态、控制量和第一步输出。</li>
+    <li><strong>按真实接口验证部署：</strong>依据实际 SDK 的权限与命令语义，分别检查状态、关节执行、时序与停止行为。</li>
   </ol>
-  <p>实验依据：2026-10-13 关节目标限幅对照、2026-10-21 航向保持与阶段结题记录，以及阶段起停试验记录。同步诊断流程、航向反馈与停车验收条件是本项目的工作方法，不作为上述论文的原文结论。</p>
-  <p><a class="text-link" href="/blog/go2-evaluation/">返回：四足强化学习训练技巧 →</a></p>
-</article><aside class="article-toc"><h2>文章目录</h2><nav><a href="#execution">策略与关节执行链</a><a href="#symmetry">左右对称与等变</a><a href="#heading">航向反馈</a><a href="#contact">同步接触诊断</a><a href="#stop">起停与站立验收</a><a href="#tradeoff">整体回归</a><a href="#references">引用论文</a></nav></aside></div></div></main>
+  <p>读论文时固定问六件事：控制对象是什么、运行时读取什么、输出什么命令、哪一层处理限制、方法依赖什么假设、实验证据在哪些条件下成立。C++ 学习也围绕闭环展开：状态快照、预分配、资源生命周期、求解器状态和时延记录都需要掌握。</p>
+  <div class="callout" id="next"><strong>这份方法论的落点：</strong>能沿完整闭环解释一个动作，指出限制来自哪一层，并用证据定位一次失败。实现路线由具体任务决定，能力表述以实际完成的接口、实验和部署验证为依据。</div>
+
+  <h2 id="references">参考文献与工程入口</h2>
+  <p>主要内容依据《四足机器人控制方法论与学习建议》整理。以下论文分别支撑各节的方法说明；论文的机器人能力与实验结果不作为我的项目成果。</p>
+  <ol>
+    <li id="ref-wbic">Kim, D. 等（2019）. <a href="https://arxiv.org/abs/1909.06586" target="_blank" rel="noreferrer">Highly Dynamic Quadruped Locomotion via Whole-Body Impulse Control and Model Predictive Control</a>。阅读 MPC、WBIC 与关节控制的职责分工。</li>
+    <li id="ref-rl">Rudin, N. 等（CoRL 2021；论文集 2022）. <a href="https://arxiv.org/abs/2109.11978" target="_blank" rel="noreferrer">Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning</a>。阅读并行采样、课程与策略执行接口。</li>
+    <li id="ref-estimation">Bloesch, M. 等（RSS 2012）. <a href="https://www.roboticsproceedings.org/rss08/p03.html" target="_blank" rel="noreferrer">State Estimation for Legged Robots - Consistent Fusion of Leg Kinematics and IMU</a>。阅读接触运动学、IMU 融合与滤波一致性。</li>
+    <li id="ref-rma">Kumar, A. 等（RSS 2021）. <a href="https://arxiv.org/abs/2107.04034" target="_blank" rel="noreferrer">RMA: Rapid Motor Adaptation for Legged Robots</a>。阅读基础策略、历史输入与适应模块。</li>
+    <li id="ref-dreamwaq">Nahrendra, I. M. A., Yu, B. &amp; Myung, H.（ICRA 2023）. <a href="https://arxiv.org/abs/2301.10602" target="_blank" rel="noreferrer">DreamWaQ: Learning Robust Quadrupedal Locomotion With Implicit Terrain Imagination via Deep Reinforcement Learning</a>。阅读本体感知历史与学习型估计。</li>
+    <li id="ref-nmpc">Grandia, R. 等（预印本 2022）. <a href="https://arxiv.org/abs/2208.08373" target="_blank" rel="noreferrer">Perceptive Locomotion through Nonlinear Model Predictive Control</a>。阅读地形表示、落脚约束与在线优化。</li>
+    <li id="ref-perceptive">Miki, T. 等（Science Robotics 2022）. <a href="https://arxiv.org/abs/2201.08117" target="_blank" rel="noreferrer">Learning robust perceptive locomotion for quadrupedal robots in the wild</a>。阅读本体与外部感知融合及感知退化。</li>
+    <li id="ref-dtc">Jenelten, F. 等（2024 修订版）. <a href="https://arxiv.org/abs/2309.15462" target="_blank" rel="noreferrer">DTC: Deep Tracking Control</a>。阅读模型规划与学习跟踪的接口。</li>
+    <li id="ref-actuator">Hwangbo, J. 等（Science Robotics 2019）. <a href="https://arxiv.org/abs/1901.08652" target="_blank" rel="noreferrer">Learning agile and dynamic motor skills for legged robots</a>。阅读执行器建模与仿真到真机的验证。</li>
+  </ol>
+  <p>工程阅读入口：<a href="https://github.com/mit-biomimetics/Cheetah-Software" target="_blank" rel="noreferrer">MIT Cheetah Software</a> · <a href="https://github.com/leggedrobotics/ocs2" target="_blank" rel="noreferrer">OCS2</a> · <a href="https://github.com/isaac-sim/IsaacLab" target="_blank" rel="noreferrer">Isaac Lab</a> · <a href="https://osqp.org/docs/solver/index.html" target="_blank" rel="noreferrer">OSQP 求解机制</a>。</p>
+  <p><a class="text-link" href="/blog/go2-evaluation/">继续阅读：四足强化学习训练技巧 →</a></p>
+</article><aside class="article-toc"><h2>文章目录</h2><nav><a href="#routes">控制路线图</a><a href="#model">MPC 与 WBC</a><a href="#execution">RL 与关节执行链</a><a href="#estimation">估计与历史适应</a><a href="#perception">感知控制</a><a href="#hybrid">混合架构</a><a href="#engineering">共同工程基础</a><a href="#selection">按任务选择方法</a><a href="#learning">学习顺序</a><a href="#references">论文与工程入口</a></nav></aside></div></div></main>
 <footer class="site-footer"><div class="wrap footer-inner"><span><a href="/">← 返回 kaizack</a></span><span>四足 · 控制方法论</span><span>© 2026</span></div></footer></body></html>
