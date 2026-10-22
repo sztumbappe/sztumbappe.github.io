@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d0c"><meta name="description" content="Go2 越障评估记录：固定多种子协议、路线完成与接触质量指标。"><title>Go2 越障策略与固定评估 · kaizack</title><link rel="icon" href="/assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head>
+<body><a class="skip-link" href="#main">跳至正文</a><header class="site-header"><div class="wrap nav-shell"><a class="brand" href="/"><span class="brand-mark">K</span><span>kaizack<span class="brand-dot">.</span></span></a><button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">菜单</button><nav class="nav-links" id="primary-nav" aria-label="主导航"><a href="/#projects">项目</a><a href="/#articles">文章</a><a href="/#timeline">经历</a><a href="/#stack">技术栈</a></nav></div></header>
+<main id="main"><header class="page-hero"><div class="wrap"><div class="breadcrumbs"><a href="/">首页</a> / 文章 / Go2 评估</div><p class="eyebrow">GO2 · EVALUATION</p><h1>Go2 越障策略与固定评估</h1><p class="lede">报告路线成功率时，同时呈现评估条件和接触质量，避免只看一个汇总数字。</p><div class="page-meta"><time datetime="2026-10-22">资料截止 2026-10-22</time><span>约 5 分钟</span><span><a href="/projects/go2/">项目详情 →</a></span></div></div></header>
+<div class="detail-content"><div class="wrap detail-grid"><article class="prose">
+  <p>Go2 在 Isaac Lab 中使用 RSL-RL PPO 与左右镜像等变策略训练。阶段参考检查点为 <code>model_2916</code>。评估把“通过完整路线”与“满足干净完成接触条件”作为两个独立指标。</p>
+  <h2 id="protocol">固定评估条件</h2><p>核心评估使用 seed42、43、44；每个种子 16 个并行环境、每环境 2 回合。前进命令为 0.8 m/s，采用每回合锁定参考航向的 heading-hold 模式，推理变换为 <code>left_right_equivariant_gaussian</code>。</p>
+  <p>固定种子让同一套评估可以重复执行，分别检查 15 cm 七级台阶和连续五个 20 cm 缺口。回放视频源于 seed42 记录中的选中回合，可以帮助观察动作过程，但不能替代整个批次统计。</p>
+  <h2 id="results">结果：路线完成与接触质量</h2><table class="data-table"><thead><tr><th>任务</th><th>路线完成</th><th>干净完成</th><th>失败 / 接触说明</th></tr></thead><tbody><tr><td>15 cm 七级台阶</td><td>96 / 96</td><td>55 / 96</td><td>基座接触终止 0，提前离场 0</td></tr><tr><td>连续五个 20 cm 缺口</td><td>96 / 96</td><td>80 / 96</td><td>16 / 96 有非足部接触标记</td></tr></tbody></table>
+  <p>台阶任务路线完成率是 100%，但干净完成仍低于路线完成数。缺口路线也全部完成，接触质量指标则单独记录为 80/96。两类指标回答不同问题，应同时阅读。</p>
+  <h2 id="contact">接触标记如何解释</h2><p>报告中的“干净完成”遵循对应评估器的接触质量判据。传感器用历史窗口和 1 N 标记检测非足部接触。窗口采样不能直接等同于独立碰撞次数、接触时长或机器人可接受的工程安全阈值。</p>
+  <h2 id="limits">旧能力与结论边界</h2><p>seed42 旧能力筛查中，10 cm 五缺口路线完成为 32/32，干净完成 24/32，低于该项至少 25/32 的门槛。因此当前阶段不能称为全部验收通过。</p><p>历史 <code>model_2884</code> 与 <code>model_2916</code> 的路线完成数字相同，但命令模式、策略推理变换和评估器证据状态存在差异。其清洁完成差值不能归因于单一训练因素，也不构成严格同条件 A/B。</p>
+  <div class="callout"><strong>阶段结论：</strong>固定三种子核心路线均完成；接触质量、旧能力门槛与零命令停车仍需单独验证。上述结果限于 Isaac Lab 仿真，不表示跨仿真或实机通过。</div>
+  <h2 id="next">下一轮评估</h2><p>继续实验前先冻结 checkpoint 哈希、评估器源码、推理变换、命令与 reset 条件。之后按相同种子重跑路线与接触指标，保留逐回合记录，明确比较对象和失败定义。</p><p><a class="text-link" href="/projects/go2/">查看 Go2 项目与两段回放</a></p>
+</article><aside class="article-toc"><h2>文章目录</h2><nav><a href="#protocol">固定评估条件</a><a href="#results">路线与接触结果</a><a href="#contact">接触标记解释</a><a href="#limits">结论边界</a><a href="#next">下一轮评估</a></nav></aside></div></div></main>
+<footer class="site-footer"><div class="wrap footer-inner"><span><a href="/">← 返回 kaizack</a></span><span>Go2 · 固定评估</span><span>© 2026</span></div></footer></body></html>
