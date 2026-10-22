@@ -1,14 +1,48 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d0c"><meta name="description" content="Go2 非足部接触标记和零命令停车试验复盘：观测内容、未通过结果与下一步诊断。"><title>接触质量与停车失败复盘 · kaizack</title><link rel="icon" href="/assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d0c"><meta name="description" content="我的 Go2 控制方法：策略与关节 PD 执行链、左右等变、航向反馈、同步接触诊断与起停验收，附论文引用。"><title>四足运动控制方法论 · kaizack</title><link rel="icon" href="/assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head>
 <body><a class="skip-link" href="#main">跳至正文</a><header class="site-header"><div class="wrap nav-shell"><a class="brand" href="/"><span class="brand-mark">K</span><span>kaizack<span class="brand-dot">.</span></span></a><button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">菜单</button><nav class="nav-links" id="primary-nav" aria-label="主导航"><a href="/#projects">项目</a><a href="/#articles">文章</a><a href="/#timeline">经历</a><a href="/#stack">技术栈</a></nav></div></header>
-<main id="main"><header class="page-hero"><div class="wrap"><div class="breadcrumbs"><a href="/">首页</a> / 文章 / 接触与停车</div><p class="eyebrow">GO2 · FAILURE REVIEW</p><h1>接触质量与停车失败复盘</h1><p class="lede">路线都能完成，并不代表接触表现达标；走路时能停，也不代表零命令下能站稳。</p><div class="page-meta"><time datetime="2026-10-22">资料截止 2026-10-22</time><span>约 4 分钟</span><span><a href="/projects/go2/">项目详情 →</a></span></div></div></header>
+<main id="main"><header class="page-hero"><div class="wrap"><div class="breadcrumbs"><a href="/">首页</a> / 文章 / 四足控制</div><p class="eyebrow">QUADRUPED · CONTROL</p><h1>四足运动控制方法论</h1><p class="lede">沿命令、观测、策略、关节目标和实际响应分析问题，用同步诊断与固定回归验证每次控制改动。</p><div class="page-meta"><time datetime="2026-10-23">更新于 2026-10-23</time><span><a href="/projects/go2/">项目详情 →</a></span></div></div></header>
 <div class="detail-content"><div class="wrap detail-grid"><article class="prose">
-  <p>Go2 阶段评估中，最容易被单个路线成功率遮盖的两项问题是非足部接触标记和零命令停车后持续站立。两项都单独保留了失败证据，后续诊断以这些数据为基线。</p>
-  <h2 id="contact">接触质量：路线成功不等于无碰触</h2><p><code>model_2916</code> 的三种子核心任务里，15 cm 台阶路线为 96/96 完成，干净完成为 55/96；20 cm 五缺口路线为 96/96 完成，干净完成为 80/96，另有 16/96 回合出现非足部接触标记。</p><p>当前标记来自历史传感器窗口及 1 N 阈值。这种记录适合固定协议下的研究诊断，不能直接说明碰撞发生次数、持续时间或工程容许值。应先补充接触点和同步高频力数据，再给安全性阈值结论。</p>
-  <h2 id="stop">停车实验：零命令后仍明显漂移</h2><p>从 <code>model_2916</code> 开始的起停分支训练至 <code>model_2920</code>，新增 5 次更新后停止。测试让 Go2 先行走 3 秒，再接收零命令 35 秒，之后尝试重新起步。</p><table class="data-table"><thead><tr><th>前进速度</th><th>零命令 35 秒位移</th><th>末端平面速度</th><th>判定</th></tr></thead><tbody><tr><td>0.3 m/s</td><td>2.945 m</td><td>0.103 m/s</td><td>未停稳</td></tr><tr><td>0.5 m/s</td><td>3.047 m</td><td>0.075 m/s</td><td>未停稳</td></tr><tr><td>0.8 m/s</td><td>3.185 m</td><td>0.088 m/s</td><td>未停稳</td></tr></tbody></table><p>三档速度都未在 2 秒内停稳，因此没有进入 30 秒持续站立判定。随后重新起步成功。这个结果表明当前策略还没有满足松开速度命令后快速停稳并持续站立的目标。</p>
-  <h2 id="tradeoff">停止继续训练的原因</h2><p>首段起停试训没有达到停车目标；质量筛查也发现 15 cm 台阶非足部接触回合从 19/32 降至 14/32、20 cm 缺口严格成功从 27/32 降至 26/32，且核心路线筛查未达到 32/32。按既定停止条件，训练停在新增 5 次更新处。<code>model_2920</code> 是失败诊断模型，不升为默认交互模型。</p>
-  <h2 id="next">下一步诊断</h2><ul><li>冻结 <code>model_2916</code> 作为参考，先检查零命令时策略输入、观测、动作历史和根速度变化。</li><li>记录根位移、机身姿态、关节目标与反馈，定位漂移由何时、哪一段状态开始。</li><li>再进行单因素短程实验，并同时复核台阶、缺口、接触质量和停车指标。</li><li>若做固定站立验收，记录真实推进时间、2 秒内停稳、30 秒漂移和重新起步结果。</li></ul>
-  <div class="callout"><strong>复盘结论：</strong>现有数据清楚表明停车目标未通过。下一步先做零训练诊断，保留失败检查点和固定对照，避免把继续训练本身当成问题已经解决的证据。</div>
-  <p><a class="text-link" href="/projects/go2/">查看 Go2 项目与完整限制</a></p>
-</article><aside class="article-toc"><h2>文章目录</h2><nav><a href="#contact">接触质量</a><a href="#stop">停车实验结果</a><a href="#tradeoff">停止条件</a><a href="#next">下一步诊断</a></nav></aside></div></div></main>
-<footer class="site-footer"><div class="wrap footer-inner"><span><a href="/">← 返回 kaizack</a></span><span>Go2 · 失败复盘</span><span>© 2026</span></div></footer></body></html>
+  <p>在 Go2 越障项目中，我把控制问题沿“命令 → 观测 → 策略动作 → 关节目标 → 执行响应 → 接触与运动结果”逐层展开。看到前腿动作不协调、蹭地或停车漂移时，先定位异常发生在哪一层，再选择干预。这篇文章整理我实际使用和验证过的控制分析方法。</p>
+
+  <h2 id="execution">1. 先看清策略到关节的执行链</h2>
+  <p>项目使用 PPO 学习动作，算法基础见 Schulman 等人的论文 <a href="#ref-ppo" aria-label="参考文献 1">[1]</a>。阶段参考模型的动作配置为关节位置控制：12 维策略输出经过 0.25 缩放并叠加默认关节姿态，交给仿真执行器的 PD 环节，再受电机速度与力矩边界约束。配置中的仿真步长为 0.005 秒、动作降采样为 4，对应每 0.02 秒更新一次策略目标。</p>
+  <p><strong>策略原始动作、处理后的关节目标、实际关节角度与执行力矩需要分别记录。</strong>关节目标超出可达范围时，即使实际关节没有越限，也会影响 PD 误差和输出。因而，诊断不能只看动作曲线或视频中的最终姿态。</p>
+  <p>2026-10-13 我做过只改变播放阶段关节目标硬限幅的对照。一个原失败回合恢复跑满，但 32 回合箱体整体从 31/32 降至 30/32，速度误差从 0.141198 增至 0.175167 m/s；10 cm 缺口零非足接触完成从 32/32 降至 25/32。因此没有采用该修补。此结果说明该轮直接改变执行映射未通过筛查，不能据此否定所有限幅设计。</p>
+
+  <h2 id="symmetry">2. 左右对称是变换关系，不是同时输出相同动作</h2>
+  <p>对称约束要求镜像观测产生相应的镜像动作。Mittal 等人研究数据增强与镜像损失 <a href="#ref-mittal" aria-label="参考文献 2">[2]</a>；Su 等人比较网络等变结构与增强方法在足式控制中的作用 <a href="#ref-su" aria-label="参考文献 3">[3]</a>。这些工作帮助我区分对称先验的不同实现方式。</p>
+  <p>本地实现读取明确的观测和动作镜像映射，分别计算原观测、镜像观测下的输出，把后者映回后进行均值投影；高斯方差也同步处理。采样、log probability、KL 与确定性推理使用同一投影分布。该实现的具体公式和接口以本地源码为准，不宣称复现了上述论文的全部结构或实验。</p>
+  <p>检查步态时，我按每条腿自己的摆动周期对齐足端高度、接触状态和关节响应。对角小跑的不同腿并非都在同一相位，不能用同一时刻的左右高度相等作为正常动作的唯一标准。镜像误差下降后仍要复核接触和路线表现。</p>
+
+  <h2 id="heading">3. 将航向反馈纳入命令闭环</h2>
+  <p>持续给定前进速度时，我还检查机器人是否偏航离开路线。在航向保持实验中，每回合重置时锁定参考航向，转向速度命令由航向误差闭环产生，范围为 ±0.3 rad/s；前进速度保持 0.8 m/s。这个命令模式需要随模型与评估配置一同保存。</p>
+  <p>2026-10-21 的处理组从 <code>model_2908.pt</code> 续训 10 次更新得到 <code>model_2916.pt</code>，在种子 42、43、44、每种子 32 回合中，两项核心路线均为 96/96。由于比较涉及续训和命令协议，不能把全部差值单独归因于航向控制，也不能把固定零转向命令下的数据直接合并进同一表格。</p>
+
+  <h2 id="contact">4. 接触诊断对齐时间、部位与通过阶段</h2>
+  <p>遇到头部或小腿接触，我同步查看实际策略观测、上一周期持有的关节目标、关节反馈、足端位置、机身姿态和接触历史。当前时刻新算出的动作尚未执行，不能用它直接解释已经发生的接触。路线也拆为接近障碍、前腿跨越、后腿通过和恢复，逐段寻找最早出现的异常。</p>
+  <p>记录接触时，同时给出有标记的回合数和历史窗口采样占比。当前 1 N 标记是记录规则；窗口重叠，无法据此给出独立撞击次数或精确持续时间。控制改动是否有效，要同时看失败回合与整个批次，单个回合的恢复视频不足以证明整体改善。</p>
+
+  <h2 id="stop">5. 把行走、停稳、站立和重新起步分别验收</h2>
+  <p>我将停车目标拆成“收到零命令后 2 秒内停稳、随后持续站立 30 秒、能够重新起步”。从 <code>model_2916.pt</code> 新增 5 次更新得到的起停分支 <code>model_2920.pt</code>，测试先行走 3 秒，再输入零命令 35 秒，之后重新起步。</p>
+  <table class="data-table"><caption>起停分支的零命令测试记录</caption><thead><tr><th scope="col">行走命令</th><th scope="col">零命令 35 秒位移</th><th scope="col">末端平面速度</th></tr></thead><tbody>
+    <tr><td>0.3 m/s</td><td>2.945 m</td><td>0.103 m/s</td></tr>
+    <tr><td>0.5 m/s</td><td>3.047 m</td><td>0.075 m/s</td></tr>
+    <tr><td>0.8 m/s</td><td>3.185 m</td><td>0.088 m/s</td></tr>
+  </tbody></table>
+  <p>三档均未在 2 秒内停稳，因而没有进入合格的 30 秒持续站立判定；随后重新起步成功。该分支还未保住全部越障筛查指标，所以停止继续训练。零命令漂移的唯一根因尚未确定，下一步需要核对命令输入、观测、动作历史与根速度的同步变化。</p>
+
+  <h2 id="tradeoff">6. 控制改动通过整体回归后才保留</h2>
+  <p>每次改动先明确作用位置：命令生成、策略输入、动作映射或奖励。保持其余条件不变，短程测试后一起检查路线、速度跟踪、前进进度、姿态、接触与旧能力。局部异常消失，但整体任务退化时，保留证据并回到对照。</p>
+  <div class="callout" id="next"><strong>我的控制方法：</strong>先沿执行链找到有证据支持的异常，再做一次可回退的干预，用同步轨迹解释过程，用固定批次检查代价。这里总结的是 Go2 仿真经验；实体四足的 VMC 与腿部雅可比工作另见<a href="/projects/quadruped/">竞赛项目页</a>。</div>
+
+  <h2 id="references">引用论文与使用范围</h2>
+  <ol>
+    <li id="ref-ppo">Schulman, J., Wolski, F., Dhariwal, P., Radford, A. &amp; Klimov, O. (2017). <a href="https://arxiv.org/abs/1707.06347" target="_blank" rel="noreferrer">Proximal Policy Optimization Algorithms</a>. arXiv:1707.06347。对应策略优化背景；本文关节与执行器参数来自本地配置。</li>
+    <li id="ref-mittal">Mittal, M., Rudin, N., Klemm, V., Allshire, A. &amp; Hutter, M. (2024). <a href="https://arxiv.org/abs/2403.04359" target="_blank" rel="noreferrer">Symmetry Considerations for Learning Task Symmetric Robot Policies</a>. ICRA 2024。对应对称增强与镜像损失。</li>
+    <li id="ref-su">Su, Z. 等 (2024). <a href="https://iit-dlslab.github.io/papers/su24iros.pdf" target="_blank" rel="noreferrer">Leveraging Symmetry in RL-based Legged Locomotion Control</a>. IROS 2024。对应足式策略中的等变结构与数据增强比较。</li>
+  </ol>
+  <p>实验依据：2026-10-13 关节目标限幅对照、2026-10-21 航向保持与阶段结题记录，以及阶段起停试验记录。同步诊断流程、航向反馈与停车验收条件是本项目的工作方法，不作为上述论文的原文结论。</p>
+  <p><a class="text-link" href="/blog/go2-evaluation/">返回：四足强化学习训练技巧 →</a></p>
+</article><aside class="article-toc"><h2>文章目录</h2><nav><a href="#execution">策略与关节执行链</a><a href="#symmetry">左右对称与等变</a><a href="#heading">航向反馈</a><a href="#contact">同步接触诊断</a><a href="#stop">起停与站立验收</a><a href="#tradeoff">整体回归</a><a href="#references">引用论文</a></nav></aside></div></div></main>
+<footer class="site-footer"><div class="wrap footer-inner"><span><a href="/">← 返回 kaizack</a></span><span>四足 · 控制方法论</span><span>© 2026</span></div></footer></body></html>

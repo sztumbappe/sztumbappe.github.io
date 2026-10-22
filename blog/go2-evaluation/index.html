@@ -1,16 +1,49 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d0c"><meta name="description" content="Go2 越障评估记录：固定多种子协议、路线完成与接触质量指标。"><title>Go2 越障策略与固定评估 · kaizack</title><link rel="icon" href="/assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d0c"><meta name="description" content="我的 Go2 训练经验：困难地形曝光、课程采样、对称先验、单因素短训与能力保留，附方法对应论文。"><title>四足强化学习训练技巧 · kaizack</title><link rel="icon" href="/assets/mark.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/site.css"><script src="/assets/site.js" defer></script></head>
 <body><a class="skip-link" href="#main">跳至正文</a><header class="site-header"><div class="wrap nav-shell"><a class="brand" href="/"><span class="brand-mark">K</span><span>kaizack<span class="brand-dot">.</span></span></a><button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">菜单</button><nav class="nav-links" id="primary-nav" aria-label="主导航"><a href="/#projects">项目</a><a href="/#articles">文章</a><a href="/#timeline">经历</a><a href="/#stack">技术栈</a></nav></div></header>
-<main id="main"><header class="page-hero"><div class="wrap"><div class="breadcrumbs"><a href="/">首页</a> / 文章 / Go2 评估</div><p class="eyebrow">GO2 · EVALUATION</p><h1>Go2 越障策略与固定评估</h1><p class="lede">报告路线成功率时，同时呈现评估条件和接触质量，避免只看一个汇总数字。</p><div class="page-meta"><time datetime="2026-10-22">资料截止 2026-10-22</time><span>约 5 分钟</span><span><a href="/projects/go2/">项目详情 →</a></span></div></div></header>
+<main id="main"><header class="page-hero"><div class="wrap"><div class="breadcrumbs"><a href="/">首页</a> / 文章 / 四足训练</div><p class="eyebrow">QUADRUPED · TRAINING</p><h1>四足强化学习训练技巧</h1><p class="lede">从 Go2 越障实验整理课程采样、对称先验与分段训练技巧，用固定对照检查进步和代价。</p><div class="page-meta"><time datetime="2026-10-23">更新于 2026-10-23</time><span><a href="/projects/go2/">项目详情 →</a></span></div></div></header>
 <div class="detail-content"><div class="wrap detail-grid"><article class="prose">
-  <p>Go2 在 Isaac Lab 中使用 RSL-RL PPO 与左右镜像等变策略训练。阶段参考检查点为 <code>model_2916</code>。评估把“通过完整路线”与“满足干净完成接触条件”作为两个独立指标。</p>
-  <h2 id="protocol">固定评估条件</h2><p>核心评估使用 seed42、43、44；每个种子 16 个并行环境、每环境 2 回合。前进命令为 0.8 m/s，采用每回合锁定参考航向的 heading-hold 模式，推理变换为 <code>left_right_equivariant_gaussian</code>。</p>
-  <p>固定种子让同一套评估可以重复执行，分别检查 15 cm 七级台阶和连续五个 20 cm 缺口。回放视频源于 seed42 记录中的选中回合，可以帮助观察动作过程，但不能替代整个批次统计。</p>
-  <h2 id="results">结果：路线完成与接触质量</h2><table class="data-table"><thead><tr><th>任务</th><th>路线完成</th><th>干净完成</th><th>失败 / 接触说明</th></tr></thead><tbody><tr><td>15 cm 七级台阶</td><td>96 / 96</td><td>55 / 96</td><td>基座接触终止 0，提前离场 0</td></tr><tr><td>连续五个 20 cm 缺口</td><td>96 / 96</td><td>80 / 96</td><td>16 / 96 有非足部接触标记</td></tr></tbody></table>
-  <p>台阶任务路线完成率是 100%，但干净完成仍低于路线完成数。缺口路线也全部完成，接触质量指标则单独记录为 80/96。两类指标回答不同问题，应同时阅读。</p>
-  <h2 id="contact">接触标记如何解释</h2><p>报告中的“干净完成”遵循对应评估器的接触质量判据。传感器用历史窗口和 1 N 标记检测非足部接触。窗口采样不能直接等同于独立碰撞次数、接触时长或机器人可接受的工程安全阈值。</p>
-  <h2 id="limits">旧能力与结论边界</h2><p>seed42 旧能力筛查中，10 cm 五缺口路线完成为 32/32，干净完成 24/32，低于该项至少 25/32 的门槛。因此当前阶段不能称为全部验收通过。</p><p>历史 <code>model_2884</code> 与 <code>model_2916</code> 的路线完成数字相同，但命令模式、策略推理变换和评估器证据状态存在差异。其清洁完成差值不能归因于单一训练因素，也不构成严格同条件 A/B。</p>
-  <div class="callout"><strong>阶段结论：</strong>固定三种子核心路线均完成；接触质量、旧能力门槛与零命令停车仍需单独验证。上述结果限于 Isaac Lab 仿真，不表示跨仿真或实机通过。</div>
-  <h2 id="next">下一轮评估</h2><p>继续实验前先冻结 checkpoint 哈希、评估器源码、推理变换、命令与 reset 条件。之后按相同种子重跑路线与接触指标，保留逐回合记录，明确比较对象和失败定义。</p><p><a class="text-link" href="/projects/go2/">查看 Go2 项目与两段回放</a></p>
-</article><aside class="article-toc"><h2>文章目录</h2><nav><a href="#protocol">固定评估条件</a><a href="#results">路线与接触结果</a><a href="#contact">接触标记解释</a><a href="#limits">结论边界</a><a href="#next">下一轮评估</a></nav></aside></div></div></main>
-<footer class="site-footer"><div class="wrap footer-inner"><span><a href="/">← 返回 kaizack</a></span><span>Go2 · 固定评估</span><span>© 2026</span></div></footer></body></html>
+  <p>这篇笔记整理我在 Go2 / Isaac Lab / RSL-RL PPO 越障训练中形成的工作方法：先确认机器人实际看到了什么、执行了什么、遇到了什么地形，再通过短程对照决定是否继续训练。这里的经验来自具体实验，适用条件随结果一起保留。</p>
+  <h2 id="protocol">1. 先把训练问题写成可验证的任务</h2>
+  <p>PPO 通过环境采样与策略更新反复优化行为 <a href="#ref-ppo" aria-label="参考文献 1">[1]</a>。在我的项目里，奖励上升只是训练信号；是否学会越障，还需要独立定义路线完成、接触质量和旧能力门槛。</p>
+  <p>例如，台阶任务要区分“到顶保持”和“完整前向离场”；五缺口任务要检查连续五次跨越及路线完成。更换判据后，旧表格不能直接拼入新结果。评估前记录模型哈希、地形几何、命令、重置条件、种子、回合数和推理方式，才能让一次改动有明确的比较对象。</p>
+
+  <h2 id="curriculum">2. 训练难题之前，先确认难题进入了数据</h2>
+  <p>大规模并行训练与地形课程可以提高足式策略的训练效率，Rudin 等人的工作提供了相应方法依据 <a href="#ref-parallel" aria-label="参考文献 2">[2]</a>。我的实际问题是：混合场中虽然配置了高台阶和宽缺口，原课程在短训窗口内却几乎没有提供高档地形曝光。</p>
+  <p>2026-10-13 的对照从同一检查点恢复模型、优化器与课程状态，使用 seed42、2048 个环境，每组 100 次更新，只改变困难地形的出生难度采样。两类台阶与五缺口采用 40% 原课程、40% 等级 4–6、10% 等级 7–8、10% 等级 9；其他地形沿用原课程。这个比例是该轮实验设计值。</p>
+  <p><strong>我同时记录出生比例与实际时间曝光。</strong>高难回合较早结束时，两者会不同；强制挑战等级也单独记录，不覆盖机器人通过课程获得的等级缓存。等级内几何仍有随机性，最高等级不能直接等同于每回合都训练精确的 15 cm 台阶或 20 cm 缺口。</p>
+
+  <h2 id="results">3. 看见进步，也检查为此付出的代价</h2>
+  <p>以下是上述两组短训的固定评估：seed42、16 环境 × 2 回合、0.8 m/s。该轮台阶使用当时的“完整到顶并保持 0.2 秒、无基座终止”判据，与后续完整前向离场协议分开解释。</p>
+  <table class="data-table"><caption>难度混合采样：同起点、同预算短训对照</caption><thead><tr><th scope="col">检查项</th><th scope="col">原课程</th><th scope="col">难度混合</th></tr></thead><tbody>
+    <tr><td>15 cm 台阶到顶保持</td><td>3 / 32</td><td>27 / 32</td></tr>
+    <tr><td>20 cm 五缺口路线完成</td><td>4 / 32</td><td>30 / 32</td></tr>
+    <tr><td>20 cm 五缺口零非足接触完成</td><td>0 / 32</td><td>0 / 32</td></tr>
+    <tr><td>5 cm 台阶到顶保持</td><td>32 / 32</td><td>29 / 32</td></tr>
+    <tr><td>15 cm 五缺口零非足接触完成</td><td>18 / 32</td><td>3 / 32</td></tr>
+  </tbody></table>
+  <p>困难路线完成数提高，但接触质量与低档能力没有一起改善。因此我保留了原基线，没有据此扩大训练。这次对照支持“检查训练曝光、针对困难任务补充数据”的做法；单训练种子、100 次更新不能证明收敛，也不能证明曝光是全部失败的唯一原因。</p>
+
+  <h2 id="symmetry">4. 对称性先做接口核对，再进入训练</h2>
+  <p>左右动作不协调时，我先检查镜像后的观测、关节动作、命令与高度扫描是否对应，再比较增强、镜像损失与等变策略。Mittal 等人的研究讨论了 on-policy 场景中的数据增强与镜像损失 <a href="#ref-symmetry" aria-label="参考文献 3">[3]</a>，可以用来理解方法差异。</p>
+  <p>本地后续采用的左右等变高斯分布投影是项目中的具体实现，不等同于逐项复现该论文。训练时的采样、PPO 概率计算和播放推理必须使用同一变换；换一种播放入口得到的表现，不能直接用于评判训练效果。加入一种对称约束后，仍要检查路线、接触、跟踪和旧能力，镜像误差降低本身不构成验收。</p>
+
+  <h2 id="next">5. 单因素、短分段，并保存可恢复的状态</h2>
+  <p>我的实验顺序是：保留起点 → 写出一个可检验的改动 → 同预算训练对照 → 固定评估 → 决定继续或停止。恢复训练时核对模型、完整优化器、优化器与 PPO 内部学习率、课程缓存和有效配置，并单独记录实际新增更新数。</p>
+  <p>在 2026-10-21 的航向保持实验中，每 5 次更新检查一次；续训 10 次后的 <code>model_2916.pt</code> 完成两项核心目标的三种子路线，继续到 15、20、25 次更新后又出现回退。这说明该轮不能按“最后一个文件”选择模型，也不支持沿用原改动无检查地继续训练。</p>
+
+  <h2 id="contact">6. 固定评估，同时保留接触质量与旧能力</h2>
+  <p>该阶段核心路线采用种子 42、43、44，每种子 16 环境 × 2 回合，固定前进 0.8 m/s、每回合锁定参考航向，并使用 <code>left_right_equivariant_gaussian</code> 推理。<code>model_2916.pt</code> 的 15 cm 台阶与 20 cm 五缺口均完成 96/96；干净完成分别为 55/96、80/96。旧能力筛查中，10 cm 缺口干净完成 24/32，低于 25/32 门槛。</p>
+  <p>接触标记来自策略采样时的滚动接触力历史及 1 N 阈值。重叠窗口不能解释为独立碰撞次数或精确接触时长。多评估种子检查的是同一策略在这些测试条件下的表现，也不能替代多训练种子的算法稳健性研究。</p>
+  <div class="callout" id="limits"><strong>我保留的训练原则：</strong>先核对数据与执行接口，再做单因素短训；目标进展、接触质量和能力保留一起决定是否继续。以上结果限于 Go2 的 Isaac Lab 仿真实验，阶段整体验收仍未完成。</div>
+
+  <h2 id="references">引用论文与使用范围</h2>
+  <ol>
+    <li id="ref-ppo">Schulman, J., Wolski, F., Dhariwal, P., Radford, A. &amp; Klimov, O. (2017). <a href="https://arxiv.org/abs/1707.06347" target="_blank" rel="noreferrer">Proximal Policy Optimization Algorithms</a>. arXiv:1707.06347。对应 PPO 算法基础。</li>
+    <li id="ref-parallel">Rudin, N., Hoeller, D., Reist, P. &amp; Hutter, M. (2022). <a href="https://proceedings.mlr.press/v164/rudin22a.html" target="_blank" rel="noreferrer">Learning to Walk in Minutes Using Massively Parallel Deep Reinforcement Learning</a>. CoRL，PMLR 164:91–100。对应并行训练与地形课程；本文难度混合比例来自我的实验。</li>
+    <li id="ref-symmetry">Mittal, M., Rudin, N., Klemm, V., Allshire, A. &amp; Hutter, M. (2024). <a href="https://arxiv.org/abs/2403.04359" target="_blank" rel="noreferrer">Symmetry Considerations for Learning Task Symmetric Robot Policies</a>. ICRA 2024。对应对称数据增强与镜像损失的讨论。</li>
+  </ol>
+  <p>实验依据：2026-10-13 难度采样对照记录、2026-10-21 航向保持与阶段结题记录。论文提供方法背景，本文数字来自本地 Go2 实验；不将论文结果作为我的项目成果。</p>
+  <p><a class="text-link" href="/blog/contact-stop-review/">继续阅读：四足运动控制方法论 →</a></p>
+</article><aside class="article-toc"><h2>文章目录</h2><nav><a href="#protocol">明确训练任务</a><a href="#curriculum">困难地形曝光</a><a href="#results">短训对照与代价</a><a href="#symmetry">对称接口核对</a><a href="#next">分段续训</a><a href="#contact">固定评估</a><a href="#references">引用论文</a></nav></aside></div></div></main>
+<footer class="site-footer"><div class="wrap footer-inner"><span><a href="/">← 返回 kaizack</a></span><span>四足 · 训练技巧</span><span>© 2026</span></div></footer></body></html>
