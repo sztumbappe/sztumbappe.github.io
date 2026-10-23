@@ -63,6 +63,8 @@ h2 { margin: 0; font-size: clamp(1.75rem, 4vw, 2.65rem); letter-spacing: -.045em
 .project-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: .65rem; background: linear-gradient(145deg, rgba(21,30,27,.95), rgba(12,17,15,.97)); transition: transform .18s ease, border-color .18s ease; }
 .project-card:hover { transform: translateY(-3px); border-color: #587254; }
 .project-card img { width: 100%; height: 14rem; object-fit: cover; background: #141c19; }
+.project-media { display: block; width: 100%; overflow: hidden; cursor: pointer; }
+.project-media img { display: block; }
 .project-card .photo-contain { object-fit: contain; padding: .7rem; }
 .media-button { width: 100%; padding: 0; overflow: hidden; border: 0; background: transparent; cursor: zoom-in; }
 .project-body { padding: 1.15rem 1.2rem 1.25rem; }
