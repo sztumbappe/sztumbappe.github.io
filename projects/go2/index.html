@@ -7,6 +7,8 @@
   <button class="media-button" type="button" data-lightbox aria-label="放大查看 Go2 台阶仿真关键帧"><img class="detail-image" src="/assets/go2-stairs-15cm.png" alt="Go2 正在 Isaac Lab 仿真中攀越 15 厘米台阶"></button>
   <h2 id="method">训练和控制链路</h2><p>我使用 Isaac Lab 搭建地形和机器人仿真，再通过 RSL-RL 的 PPO 训练运动策略。仿真提供关节、机身和地形高度等信息；策略根据这些信息生成关节位置目标，下层 PD 控制器再把目标转成关节力矩。仿真物理每 5 ms 更新一次，策略每 20 ms 更新一次。</p>
   <p>训练时加入左右对称约束，帮助策略学习协调步态。播放策略时，我也要核对观测顺序、动作映射、默认关节姿态和控制周期，保证训练和评估时走的是一致的控制链路。</p>
+  <h3 id="demos">两段障碍回放</h3><p>两段回放分别展示 15 cm 七级台阶和连续五个 20 cm 缺口。</p>
+  <div class="video-grid"><div class="video-card"><video controls muted preload="none" playsinline data-autoplay-visible poster="/assets/go2-stairs-15cm.png"><source src="/assets/go2-stairs-15cm.mp4" type="video/mp4">浏览器不支持 MP4 视频。</video><h3>15 cm 台阶</h3><p>仿真通过片段。</p></div><div class="video-card"><video controls muted preload="none" playsinline data-autoplay-visible poster="/assets/go2-gaps-20cm.png"><source src="/assets/go2-gaps-20cm.mp4" type="video/mp4">浏览器不支持 MP4 视频。</video><h3>连续五个 20 cm 缺口</h3><p>仿真通过片段。</p></div></div>
   <h2 id="engineering">工程问题与处理</h2>
   <h3>困难地形有没有真正进入训练</h3><p>混合场里配置了较高台阶和宽缺口，但仅查看配置不能确认策略实际经历了多少次、多久的高难度地形。我增加了实际地形曝光统计，再用相同起点和训练预算做采样对照，判断困难样本是否增加，以及新结果是否影响已有地形能力。</p>
   <h3>分段续训能否接上原有课程</h3><p>训练中断后，标准检查点没有保存混合场中每个环境的课程等级。重新开始时策略和优化器虽然恢复了，地形难度进度却回到了初始状态。我为检查点增加逐环境、逐地形的课程状态保存与恢复，并检查配置和等级矩阵是否匹配；旧检查点缺少课程数据时，程序明确使用初始等级，不用日志猜造历史状态。</p>
@@ -14,8 +16,6 @@
   <h2 id="results">阶段结果</h2><p>同一阶段的固定仿真评估中，Go2 完成了 15 cm 台阶路线和连续五个 20 cm 缺口路线。接触质量单独统计，完整路线通过不表示所有回合都没有非足部接触。</p>
   <div class="metric-grid"><div class="metric"><b>96 / 96</b><span>15 cm 七级台阶路线完成</span></div><div class="metric"><b>55 / 96</b><span>台阶干净完成</span></div><div class="metric"><b>96 / 96</b><span>连续五个 20 cm 缺口路线完成</span></div><div class="metric"><b>80 / 96</b><span>缺口干净完成</span></div></div>
   <p>“干净完成”依据项目评估器的接触质量条件记录。完整通过和干净通过是两项不同指标；详细统计条件及限制见<a href="/blog/go2-evaluation/">Go2 越障训练与固定评估记录</a>。</p>
-  <h2 id="demos">两段障碍回放</h2><p>两段回放分别展示 15 cm 七级台阶和连续五个 20 cm 缺口。</p>
-  <div class="video-grid"><div class="video-card"><video controls muted preload="none" playsinline data-autoplay-visible poster="/assets/go2-stairs-15cm.png"><source src="/assets/go2-stairs-15cm.mp4" type="video/mp4">浏览器不支持 MP4 视频。</video><h3>15 cm 台阶</h3><p>仿真通过片段。</p></div><div class="video-card"><video controls muted preload="none" playsinline data-autoplay-visible poster="/assets/go2-gaps-20cm.png"><source src="/assets/go2-gaps-20cm.mp4" type="video/mp4">浏览器不支持 MP4 视频。</video><h3>连续五个 20 cm 缺口</h3><p>仿真通过片段。</p></div></div>
   <button class="media-button" type="button" data-lightbox aria-label="放大查看 Go2 缺口仿真关键帧"><img class="detail-image" src="/assets/go2-gaps-20cm.png" alt="Go2 正在 Isaac Lab 仿真中通过连续缺口"></button>
   <h2 id="limits">仍待解决的问题</h2><ul><li>部分回合虽然通过障碍，接触质量仍需改善。</li><li>10 cm 缺口旧能力筛查的干净完成为 24/32，低于项目预设的 25/32 门槛，当前方案没有通过该项。</li><li>零速度命令下尚未达到稳定站立；仿真结果也不代表实体 Go2 或其他模拟器上的表现。</li></ul>
   <div class="callout"><strong>项目重点：</strong>从配置、训练暴露、动作和接触中定位原因，用固定对照检查改动效果，并同时关注新任务进展与已有能力保持。</div>
