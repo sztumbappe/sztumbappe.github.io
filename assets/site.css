@@ -79,7 +79,7 @@ h2 { margin: 0; font-size: clamp(1.75rem, 4vw, 2.65rem); letter-spacing: -.045em
 .article-card h3 { margin: .35rem 0 .45rem; font-size: 1.13rem; }
 .article-card p { margin: 0; color: var(--muted); font-size: .9rem; }
 .article-card .article-meta { color: var(--green-dim); font-size: .7rem; }
-.honor-highlights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.honor-highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .honor-highlight { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: .55rem; background: rgba(16,23,21,.8); }
 .honor-highlight-link { display: flex; height: 9rem; align-items: center; justify-content: center; overflow: hidden; padding: .65rem; background: #0c1210; cursor: pointer; }
 .honor-highlight-link:hover { background: #111a16; }
@@ -93,6 +93,7 @@ h2 { margin: 0; font-size: clamp(1.75rem, 4vw, 2.65rem); letter-spacing: -.045em
 .honor-text-card .honor-body { display: flex; min-height: 20rem; flex-direction: column; justify-content: center; }
 .honor-preview { display: block; width: 100%; padding: .7rem; border: 0; background: #0c1210; cursor: zoom-in; }
 .honor-preview img { width: 100%; aspect-ratio: 210 / 297; object-fit: contain; }
+.honor-preview img.honor-landscape { aspect-ratio: 1813 / 1280; }
 .honor-body { padding: 1rem 1.1rem 1.1rem; }
 .honor-year { margin: 0 0 .35rem; color: var(--green-dim); font-family: var(--mono); font-size: .72rem; }
 .honor-body h3 { margin: 0; font-size: 1rem; line-height: 1.55; }
@@ -177,7 +178,7 @@ dialog.lightbox::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(5
   .nav-links a { padding: .6rem .1rem; }
   .project-grid, .article-grid { grid-template-columns: 1fr; }
   .honors-grid { grid-template-columns: 1fr; }
-  .honor-highlights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .honor-highlights { grid-template-columns: 1fr; }
   .honor-highlight-link { height: 7.5rem; }
   .honor-highlight-caption { padding: .6rem .65rem .7rem; font-size: .78rem; line-height: 1.45; }
   .project-card img { height: 13rem; }
