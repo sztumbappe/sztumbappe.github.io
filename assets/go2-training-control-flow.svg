@@ -1,18 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
-<title id="title">Go2 强化学习训练与控制链路</title><desc id="desc">仿真地形和机器人状态经过地形射线观测输入左右对称 PPO 策略，策略输出关节目标，由 PD 控制器送入 Isaac Lab 仿真；奖励与课程评估反馈给 PPO 更新。</desc>
-<defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M1 1L11 6 1 11" fill="none" stroke="#a1ed8d" stroke-width="2"/></marker></defs>
-<rect width="1280" height="720" rx="24" fill="#0c1210"/>
-<text x="64" y="68" fill="#6fba62" font-family="monospace" font-size="24" letter-spacing="3">ISAAC LAB · RSL-RL · PPO</text>
-<g font-family="sans-serif" text-anchor="middle">
-<g><rect x="48" y="150" width="250" height="190" rx="18" fill="#141e19" stroke="#395141" stroke-width="3"/><text x="173" y="210" fill="#a1ed8d" font-size="31" font-weight="700">仿真场景</text><text x="173" y="262" fill="#dce7df" font-size="23">地形 · 关节 · 机身状态</text><text x="173" y="302" fill="#9aaba2" font-size="20">Isaac Lab</text></g>
-<g><rect x="355" y="150" width="250" height="190" rx="18" fill="#141e19" stroke="#395141" stroke-width="3"/><text x="480" y="210" fill="#a1ed8d" font-size="31" font-weight="700">观测输入</text><text x="480" y="262" fill="#dce7df" font-size="23">地形射线 + 本体状态</text><text x="480" y="302" fill="#9aaba2" font-size="20">235 维观测*</text></g>
-<g><rect x="662" y="150" width="250" height="190" rx="18" fill="#17231b" stroke="#6fba62" stroke-width="3"/><text x="787" y="210" fill="#a1ed8d" font-size="31" font-weight="700">PPO 策略</text><text x="787" y="262" fill="#dce7df" font-size="23">RSL-RL · 左右等变</text><text x="787" y="302" fill="#9aaba2" font-size="20">课程训练与策略更新</text></g>
-<g><rect x="969" y="150" width="260" height="190" rx="18" fill="#141e19" stroke="#395141" stroke-width="3"/><text x="1099" y="210" fill="#a1ed8d" font-size="31" font-weight="700">关节执行</text><text x="1099" y="262" fill="#dce7df" font-size="23">12 维目标 → PD</text><text x="1099" y="302" fill="#9aaba2" font-size="20">策略 20 ms · 物理 5 ms</text></g>
-<g fill="none" stroke="#a1ed8d" stroke-width="4" marker-end="url(#arrow)"><path d="M300 245H343"/><path d="M607 245H650"/><path d="M914 245H957"/></g>
-<rect x="270" y="430" width="740" height="175" rx="18" fill="#111a16" stroke="#395141" stroke-width="3"/>
-<text x="640" y="482" fill="#a1ed8d" font-family="sans-serif" font-size="29" font-weight="700" text-anchor="middle">奖励反馈与验收</text>
-<text x="640" y="530" fill="#dce7df" font-family="sans-serif" font-size="22" text-anchor="middle">进度 · 足端/全身越障 · 净空 · 碰撞 · 动作变化</text>
-<text x="640" y="570" fill="#9aaba2" font-family="sans-serif" font-size="20" text-anchor="middle">固定场景评估 → 检查旧能力 → 课程推进与 PPO 更新</text>
-<path d="M1099 350V505H1025" fill="none" stroke="#a1ed8d" stroke-width="4" marker-end="url(#arrow)"/><path d="M270 505H180V245H35" fill="none" stroke="#a1ed8d" stroke-width="4" stroke-dasharray="10 10" marker-end="url(#arrow)"/>
-<text x="64" y="665" fill="#77877e" font-family="sans-serif" font-size="17">*当前对应策略接口；不同实验阶段以各自配置为准。全部输入为仿真数据，不代表真实相机感知。</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 760" role="img" aria-labelledby="title desc">
+<title id="title">Go2 训练与控制链路</title><desc id="desc">仿真场景、观测、PPO策略、关节执行构成控制闭环；训练使用奖励和终止信号更新PPO，验收使用冻结策略检查通过质量与旧能力，不更新参数。</desc>
+<defs>
+ <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#101916"/><stop offset="1" stop-color="#080d0c"/></linearGradient>
+ <linearGradient id="pol" x2="0" y2="1"><stop stop-color="#1b3022"/><stop offset="1" stop-color="#14221a"/></linearGradient>
+ <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1L9 5 1 9" fill="none" stroke="#a1ed8d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+ <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1L9 5 1 9" fill="none" stroke="#8a9b90" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+<rect width="1280" height="760" rx="28" fill="url(#bg)"/>
+<text x="60" y="45" fill="#84d776" font-family="monospace" font-size="15" letter-spacing="3">GO2 · ISAAC LAB · RSL-RL</text>
+<text x="60" y="82" fill="#edf4ef" font-family="sans-serif" font-size="29" font-weight="700">控制闭环与训练 / 验收分支</text>
+<text x="1218" y="80" fill="#829288" font-family="sans-serif" font-size="14" text-anchor="end">阶段配置示意</text>
+<path d="M60 105H1220" stroke="#26372d"/>
+<g font-family="sans-serif">
+ <!-- Main loop -->
+ <g><rect x="48" y="142" width="258" height="166" rx="17" fill="#111b16" stroke="#31493a" stroke-width="2"/><text x="70" y="174" fill="#6fba62" font-family="monospace" font-size="13" letter-spacing="2">01 · SIMULATION</text><text x="70" y="215" fill="#b7f2a8" font-size="24" font-weight="700">仿真场景</text><text x="70" y="254" fill="#d7e2da" font-size="17">地形碰撞几何 · 本体状态</text><text x="70" y="283" fill="#9aaba2" font-size="15">Isaac Lab</text></g>
+ <g><rect x="358" y="142" width="258" height="166" rx="17" fill="#111b16" stroke="#31493a" stroke-width="2"/><text x="380" y="174" fill="#6fba62" font-family="monospace" font-size="13" letter-spacing="2">02 · OBSERVATION</text><text x="380" y="215" fill="#b7f2a8" font-size="24" font-weight="700">策略观测</text><text x="380" y="254" fill="#d7e2da" font-size="17">地形射线 + 机身/关节状态</text><text x="380" y="283" fill="#9aaba2" font-size="15">235 维 · 阶段 300 接口*</text></g>
+ <g><rect x="668" y="142" width="258" height="166" rx="17" fill="url(#pol)" stroke="#70bf65" stroke-width="2.5"/><text x="690" y="174" fill="#8adb78" font-family="monospace" font-size="13" letter-spacing="2">03 · POLICY</text><text x="690" y="215" fill="#b7f2a8" font-size="24" font-weight="700">PPO 策略</text><text x="690" y="254" fill="#d7e2da" font-size="17">RSL-RL · 左右对称等变</text><text x="690" y="283" fill="#9aaba2" font-size="15">输出连续关节动作</text></g>
+ <g><rect x="978" y="142" width="254" height="166" rx="17" fill="#111b16" stroke="#31493a" stroke-width="2"/><text x="1000" y="174" fill="#6fba62" font-family="monospace" font-size="13" letter-spacing="2">04 · ACTUATION</text><text x="1000" y="215" fill="#b7f2a8" font-size="24" font-weight="700">关节执行</text><text x="1000" y="254" fill="#d7e2da" font-size="17">12 维位置目标 → PD</text><text x="1000" y="283" fill="#9aaba2" font-size="15">策略 20 ms · 物理 5 ms*</text></g>
+ <g fill="none" stroke="#a1ed8d" stroke-width="2.7" stroke-linecap="round" marker-end="url(#arr)"><path d="M311 225H349"/><path d="M621 225H659"/><path d="M931 225H969"/></g>
+ <!-- Rollout split -->
+ <text x="1098" y="339" fill="#829288" font-family="monospace" font-size="12" text-anchor="middle" letter-spacing="2">ROLLOUT</text>
+ <path d="M1105 316V361H340V384" fill="none" stroke="#8a9b90" stroke-width="2" marker-end="url(#arr2)"/>
+ <path d="M1105 361V384" fill="none" stroke="#8a9b90" stroke-width="2" marker-end="url(#arr2)"/>
+ <!-- Train lane -->
+ <rect x="72" y="390" width="548" height="258" rx="18" fill="#101a14" stroke="#416145" stroke-width="2"/>
+ <rect x="96" y="410" width="102" height="26" rx="13" fill="#1b3022"/><text x="147" y="428" fill="#a1ed8d" font-size="13" font-weight="700" text-anchor="middle">训练阶段</text>
+ <text x="96" y="471" fill="#dff2dc" font-size="22" font-weight="700">奖励项与终止信号</text>
+ <text x="96" y="503" fill="#cbd8cf" font-size="15">奖励：进度 · 足端边缘 · 后足/全身越障 · 净空</text>
+ <text x="96" y="530" fill="#cbd8cf" font-size="15">惩罚：绊碰 · 失败 · 后退 · 动作变化 · 力矩</text>
+ <text x="96" y="557" fill="#93a298" font-size="14">终止：基座接触 / 超时（阶段 300 示例）</text>
+ <path d="M96 580H596" stroke="#31493a"/>
+ <text x="96" y="616" fill="#a1ed8d" font-size="16" font-weight="700">回报与终止信号 → PPO 更新策略参数</text>
+ <!-- Eval lane -->
+ <rect x="660" y="390" width="548" height="258" rx="18" fill="#101615" stroke="#3b4a45" stroke-width="2"/>
+ <rect x="684" y="410" width="116" height="26" rx="13" fill="#202925"/><text x="742" y="428" fill="#bdcbc2" font-size="13" font-weight="700" text-anchor="middle">冻结策略验收</text>
+ <text x="684" y="471" fill="#e2e9e4" font-size="22" font-weight="700">固定模型，只做测量</text>
+ <text x="684" y="507" fill="#cbd8cf" font-size="16">全身碰撞几何是否越过障碍远沿</text>
+ <text x="684" y="536" fill="#cbd8cf" font-size="16">接触质量 · 旧能力保持 · 回放复核</text>
+ <text x="684" y="567" fill="#93a298" font-size="14">阶段 338：单次 seed 42 仿真回放</text>
+ <path d="M684 587H1184" stroke="#31493a"/>
+ <text x="684" y="620" fill="#bdcbc2" font-size="16" font-weight="700">不更新 PPO 参数；末栏后另行平滑停稳</text>
+ <!-- feedback only to policy: unobstructed center channel -->
+ <path d="M346 390V360H797V316" fill="none" stroke="#a1ed8d" stroke-width="2.5" stroke-dasharray="7 7" stroke-linecap="round" marker-end="url(#arr)"/>
+ <rect x="473" y="344" width="201" height="27" rx="13" fill="#0d1410" stroke="#26372d"/><text x="573" y="362" fill="#a1ed8d" font-size="13" text-anchor="middle">仅训练阶段更新</text>
+ <text x="60" y="702" fill="#73847a" font-family="sans-serif" font-size="13">* 235 维与 20/5 ms 对应特定阶段配置；各实验以保存配置为准。观测来自仿真，不代表真实相机感知。</text>
 </g></svg>
