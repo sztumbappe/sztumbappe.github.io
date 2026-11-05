@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+<title id="title">Go2 强化学习训练与控制链路</title><desc id="desc">仿真地形和机器人状态经过地形射线观测输入左右对称 PPO 策略，策略输出关节目标，由 PD 控制器送入 Isaac Lab 仿真；奖励与课程评估反馈给 PPO 更新。</desc>
+<defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M1 1L11 6 1 11" fill="none" stroke="#a1ed8d" stroke-width="2"/></marker></defs>
+<rect width="1280" height="720" rx="24" fill="#0c1210"/>
+<text x="64" y="68" fill="#6fba62" font-family="monospace" font-size="24" letter-spacing="3">ISAAC LAB · RSL-RL · PPO</text>
+<g font-family="sans-serif" text-anchor="middle">
+<g><rect x="48" y="150" width="250" height="190" rx="18" fill="#141e19" stroke="#395141" stroke-width="3"/><text x="173" y="210" fill="#a1ed8d" font-size="31" font-weight="700">仿真场景</text><text x="173" y="262" fill="#dce7df" font-size="23">地形 · 关节 · 机身状态</text><text x="173" y="302" fill="#9aaba2" font-size="20">Isaac Lab</text></g>
+<g><rect x="355" y="150" width="250" height="190" rx="18" fill="#141e19" stroke="#395141" stroke-width="3"/><text x="480" y="210" fill="#a1ed8d" font-size="31" font-weight="700">观测输入</text><text x="480" y="262" fill="#dce7df" font-size="23">地形射线 + 本体状态</text><text x="480" y="302" fill="#9aaba2" font-size="20">235 维观测*</text></g>
+<g><rect x="662" y="150" width="250" height="190" rx="18" fill="#17231b" stroke="#6fba62" stroke-width="3"/><text x="787" y="210" fill="#a1ed8d" font-size="31" font-weight="700">PPO 策略</text><text x="787" y="262" fill="#dce7df" font-size="23">RSL-RL · 左右等变</text><text x="787" y="302" fill="#9aaba2" font-size="20">课程训练与策略更新</text></g>
+<g><rect x="969" y="150" width="260" height="190" rx="18" fill="#141e19" stroke="#395141" stroke-width="3"/><text x="1099" y="210" fill="#a1ed8d" font-size="31" font-weight="700">关节执行</text><text x="1099" y="262" fill="#dce7df" font-size="23">12 维目标 → PD</text><text x="1099" y="302" fill="#9aaba2" font-size="20">策略 20 ms · 物理 5 ms</text></g>
+<g fill="none" stroke="#a1ed8d" stroke-width="4" marker-end="url(#arrow)"><path d="M300 245H343"/><path d="M607 245H650"/><path d="M914 245H957"/></g>
+<rect x="270" y="430" width="740" height="175" rx="18" fill="#111a16" stroke="#395141" stroke-width="3"/>
+<text x="640" y="482" fill="#a1ed8d" font-family="sans-serif" font-size="29" font-weight="700" text-anchor="middle">奖励反馈与验收</text>
+<text x="640" y="530" fill="#dce7df" font-family="sans-serif" font-size="22" text-anchor="middle">进度 · 足端/全身越障 · 净空 · 碰撞 · 动作变化</text>
+<text x="640" y="570" fill="#9aaba2" font-family="sans-serif" font-size="20" text-anchor="middle">固定场景评估 → 检查旧能力 → 课程推进与 PPO 更新</text>
+<path d="M1099 350V505H1025" fill="none" stroke="#a1ed8d" stroke-width="4" marker-end="url(#arrow)"/><path d="M270 505H180V245H35" fill="none" stroke="#a1ed8d" stroke-width="4" stroke-dasharray="10 10" marker-end="url(#arrow)"/>
+<text x="64" y="665" fill="#77877e" font-family="sans-serif" font-size="17">*当前对应策略接口；不同实验阶段以各自配置为准。全部输入为仿真数据，不代表真实相机感知。</text>
+</g></svg>
